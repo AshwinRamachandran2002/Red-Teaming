@@ -65,7 +65,6 @@ def token_gradients(model, input_ids, input_slice, target_slice, loss_slice):
     targets = input_ids[target_slice]
     loss = nn.CrossEntropyLoss()(logits[0,loss_slice,:], targets)
 
-    print(loss)
     loss.backward()
 
     grad = one_hot.grad.clone()
@@ -185,7 +184,10 @@ def target_loss(logits, ids, target_slice):
     crit = nn.CrossEntropyLoss(reduction='none')
     loss_slice = slice(target_slice.start-1, target_slice.stop-1)
     loss = crit(logits[:,loss_slice,:].transpose(1,2), ids[:,target_slice])
-    return loss.mean(dim=-1)
+    weights = torch.linspace(1, 0, steps=loss.size(1)).to(loss.device)
+    weighted_loss = loss * weights
+    weighted_mean_loss = weighted_loss.mean(dim=-1)
+    return weighted_mean_loss
 
 
 def load_model_and_tokenizer(model_path, tokenizer_path=None, device='cuda:0', **kwargs):
